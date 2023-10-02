@@ -595,12 +595,16 @@ class Orders extends CI_Controller{
         if($auth && $auth == $this->config->item('encryption_key')){
             $data = $this->check_array_values($_POST,$this->_table_column_array);
             $param = $this->check_params($_POST,$this->_table_column_edit);
+            // $_POST['orders'] = json_encode($_POST['orders']);
+           
             if(isset($data) && !empty($data)){
                 echo $this->json->response($data,$this->_Errmessage,$this->_statusErr);
             }else if(count($param) >0){
                 echo $this->json->response(array_values($param),$this->_ParamMessage,$this->_statusErr);
             }else{
                 $result = $this->Order_model->saveList($_POST);
+                echo $this->json->response($result,'ej',200);
+
                 if($result != null){
                     $id = $this->db->insert_id();
                     $data = $this->Order_model->getByIdValue($id);

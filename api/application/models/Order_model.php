@@ -12,13 +12,21 @@ class Order_model extends Main_model
     }
 
     public function getById($id){
-        $this->db->select('order.uid as uid,order.address as address,order.notes as notes,order.did as did,order.applied_coupon as applied_coupon,order.coupon_id as coupon_id,order.restId as restId,str.name_en as str_name_en,str.name_ar as str_name_ar,order.id as orderId,order.delivery_charge as delivery_charge, order.discount as discount,order.grand_total as grand_total,order.orders as orders,order.paid as paid,order.pay_method as pay_method,order.serviceTax as serviceTax,order.status as status,order.time as time,order.total as total,order.uid as uid,str.address_en as str_address_en,str.address_ar as str_address_ar,str.cover as str_cover,usr.fcm_token as str_fcm_token,usr.mobile as str_mobile');
+        $this->db->select('order.id as order_id, order.uid as uid,order.address as address,order.notes as notes,order.did as did,order.applied_coupon as applied_coupon,order.coupon_id as coupon_id,order.restId as restId,str.name_en as str_name_en,str.name_ar as str_name_ar,order.id as orderId,order.delivery_charge as delivery_charge, order.discount as discount,order.grand_total as grand_total,order.orders as orders,order.paid as paid,order.pay_method as pay_method,order.serviceTax as serviceTax,order.status as status,order.time as time,order.total as total,order.uid as uid,str.address_en as str_address_en,str.address_ar as str_address_ar,str.cover as str_cover,usr.fcm_token as str_fcm_token,usr.mobile as str_mobile');
         $this->db->from("orders as order");
         $this->db->join('store as str','order.restId = str.uid');
         $this->db->join('users as usr','order.restId = usr.id');
         $this->db->order_by("order.id", "desc");
         $this->db->where('order.id',$id);
         $data = $this->db->get()->result();
+        $this->db->select('*');
+        $this->db->from("order_items");
+        $this->db->where("order_id", $id);
+        $items = $this->db->get()->result();
+
+        
+        $data[0]->orders = json_encode($items);
+        
         return $data;
     }
 
@@ -228,7 +236,6 @@ class Order_model extends Main_model
         $this->db->join('store as str','order.restId = str.uid');
         $where = 'str.cid = 7';
         $this->db->where($where);
-        
         $this->db->order_by("id", "desc");
         $this->db->limit(10);
         $data = $this->db->get()->result();
@@ -236,9 +243,19 @@ class Order_model extends Main_model
     }
 
     public function saveList($data){
-        return $this->insert($this->table_name,$data);
+        $items = $data['orders'];
+        $data['orders'] = '';
+        $order =  $this->insert($this->table_name,$data);
+        $orderId = $this->db->insert_id();
+        foreach($items as $item){
+            $order_id = array('order_id' => $orderId);
+            $it = (array) $item;
+            $orderItem = array_merge($order_id,$it);
+            $this->insert('order_items', (object)$orderItem);
+      }
+        return $order;
     }
-
+   
     public function editList($data,$id){
         $where = "id = ".$id;
         return $this->update($this->table_name,$data,$where);
